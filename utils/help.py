@@ -7,7 +7,7 @@ comandos_info = {
     "rm-stop": "Interrompe a playlist que está tocando no momento.",
     "rm-startbook": "Salva a leitura atual com o nome do livro passado no comando.",
     "rm-checkdailyupdate": "Atualiza a meta diária de leitura para a quantidade de páginas passadas no comando.",
-    "rm-checkdaily": "Informa a quantidade de páginas lidas no dia.",
+    "rm-checkdaily": "Verifica se você bateu sua meta de leitura e atualiza seu saldo.",
     "rm-recommendation": "Recomendação de 5 livros aleatótios.",
     "rm-timer": "Cronômetro de tempo de leituraem minutos.",
     "rm-cash": "Mostra o seu saldo em moedas na economia do ReadMore.",

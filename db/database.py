@@ -26,30 +26,12 @@ async def novo_usuario(usuario):
         # Criação da conta para o usuário
         conta = {
             "discord_id":usuario.id,
-            "moedas":0
+            "moedas":0,
+            "metaDiaria":0,
+            "pgsLidasDia":0
         }
         # Inserção no banco de dados
         usuarios.insert_one(conta)
         return conta
     else:
         return False
-    
-async def checar_saldo(usuario):
-    await novo_usuario(usuario) #roda a função novo_usuario para checar se a pessoa tem uma conta, se não tiver cria uma
-
-    filtro = {"discord_id":usuario.id} #filtra o usuário pelo id do discord para identificar qual é o usuário
-    resultado = usuarios.find(filtro)
-
-    return resultado.__getitem__(0)["moedas"]
-
-async def alterar_saldo(usuario, quantidade):
-    await novo_usuario(usuario)
-
-    moedas_atuais = await checar_saldo(usuario)
-
-    filtro = {"discord_id":usuario.id}
-    relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
-        "moedas": moedas_atuais+quantidade
-    }}
-
-    usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
