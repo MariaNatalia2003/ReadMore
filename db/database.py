@@ -28,7 +28,9 @@ async def novo_usuario(usuario):
             "discord_id":usuario.id,
             "moedas":0,
             "metaDiaria":0,
-            "pgsLidasDia":0
+            "pgsLidasDia":0,
+            "livrosLidos":0,
+            "leituraAtual":"nenhum"
         }
         # Inserção no banco de dados
         usuarios.insert_one(conta)

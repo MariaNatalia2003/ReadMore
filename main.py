@@ -1,16 +1,25 @@
 # Importação de bibliotecas do projeto
 import discord
 from discord import app_commands
+from discord.ext import commands
 from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáveis de ambiente
 import os
+import asyncio
 
 # Importação de arquivos do projeto
 from db import database
 from utils import help
 from utils import cash
 from utils import checkdaily
+from utils import music
 
 id_do_servidor = 1275253885333930077 #Coloque aqui o ID do seu servidor
+
+# Configurações do ffmpeg
+ffmpeg_path = r"C:\Users\55199\Downloads\ffmpeg-master-latest-win64-gpl\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
+ffmpeg_options = {
+    'options': '-vn -buffer_size 512k'  # O 'buffer_size' ajuda em conexões instáveis ou streams de alta latência
+}
 
 load_dotenv()
 
@@ -59,6 +68,13 @@ async def rm_help(interaction: discord.Interaction, command: str = None):
         else:
             await interaction.response.send_message(f"O comando **/{command}** não foi encontrado.", ephemeral=True)
 
+# Comando para ver a meta diária de leitura atual
+#Comando para checar saldo
+@tree.command(guild = discord.Object(id=id_do_servidor), name = 'rm-viewdailygoal', description = 'Veja sua meta diária de leitura atual')
+async def metaAtual(interaction: discord.Interaction):
+    metaAtual = await checkdaily.get_metaDiaria(interaction.user)
+    await interaction.response.send_message(f"Sua meta de leitura atual é {metaAtual} páginas.")
+
 # Comando de barra para /rm-checkdaily
 @tree.command(guild = discord.Object(id=id_do_servidor), name="rm-checkdaily", description="Verifica se você bateu a meta de leitura diária e atualiza seu saldo.")
 @app_commands.describe(paginas="Número de páginas lidas")
@@ -72,5 +88,65 @@ async def meta(interaction: discord.Interaction, paginas: int):
         await interaction.response.send_message(f"Parabéns, {interaction.user.mention} bateu a meta de leitura com {paginas} páginas! 🎉")
     else:
         await interaction.response.send_message(f"{interaction.user.mention} leu {paginas} páginas, mas não bateu a meta de leitura. 😓")
+
+@meta.error
+async def meta_error(interaction:discord.Interaction, error:app_commands.AppCommandError):
+    # Checa se o erro do comando é devido ao tempo de recarga
+    if isinstance(error, app_commands.CommandOnCooldown):
+        tempoRestanteSegundos = error.cooldown.get_retry_after()
+
+        await interaction.response.send_message(f"Você só pode dar 1 checkdaily por dia. Tente em `{round(tempoRestanteSegundos/3600, 2)}` horas.", ephemeral=True) # ephemeral=True significa que só próprio usuário verá a mensagem no chat
+    else:
+        raise(error)
+    
+# Comando de barra para /rm-checkdailyupdate
+@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-checkdailyupdate", description="Atualiza sua meta diária de leitura.")
+@app_commands.describe(paginas="Nova meta de leitura")
+async def alterar_meta(interaction: discord.Interaction, paginas: int):
+    await checkdaily.alterar_metaDiaria(interaction.user, paginas)
+
+    await interaction.response.send_message(f"Sua meta diária foi alterada para {paginas} páginas por dia.")
+
+# Comando de barra para /rm-play <link da playlist>
+@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-play", description="Toca uma playlist.")
+@app_commands.describe(playlist_url="Link da playlist do Spotify")
+async def play(interaction: discord.Interaction, playlist_url: str):
+    # Extraindo o ID da playlist do URL do Spotify
+    playlist_id = playlist_url.split('/')[-1].split('?')[0]
+
+    # Obtendo informações da playlist, e buscando pelo nome
+    playlist_data = music.sp.playlist(playlist_id)
+    playlist_name = playlist_data['name']
+
+    results = music.sp.playlist_tracks(playlist_id)
+
+    # Obter nomes das faixas da playlist
+    tracks = [track['track']['name'] for track in results['items']]
+
+    # Verifique se o bot já está conectado
+    if interaction.guild.voice_client and interaction.guild.voice_client.is_connected():
+        await interaction.guild.voice_client.disconnect()
+
+    # Conectar ao canal de voz
+    if interaction.user.voice:
+        channel = interaction.user.voice.channel
+        voice_client = await channel.connect()
+
+        # Responder ao usuário que o comando foi enviado
+        await interaction.response.send_message(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
+
+        # Reproduzir cada faixa
+        for track in tracks:
+            # Buscar a URL do YouTube para a faixa
+            url = music.get_youtube_url(track)
+            if url:
+                voice_client.play(discord.FFmpegPCMAudio(executable=ffmpeg_path, source=url, **ffmpeg_options))
+                while voice_client.is_playing():
+                    await asyncio.sleep(1)
+            else:
+                await interaction.response.send_message(f"Não foi possível encontrar {track} no YouTube.")
+        await voice_client.disconnect()
+    else:
+        await interaction.response.send_message("Você precisa estar em um canal de voz para usar este comando.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
