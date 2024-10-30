@@ -13,7 +13,12 @@ from utils import cash
 from utils import checkdaily
 from utils import music
 
-id_do_servidor = 1275253885333930077 #Coloque aqui o ID do seu servidor
+#id_do_servidor = 1275253885333930077 # Usado no servidor de testes
+"""
+Para testes somente no servidor de teste, utilizar 
+guild = discord.Object(id=id_do_servidor),
+no início de cada tree.command
+"""
 
 # Configurações do ffmpeg
 ffmpeg_path = r"C:\Users\55199\Downloads\ffmpeg-master-latest-win64-gpl\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
@@ -31,25 +36,25 @@ class client(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced: #Checar se os comandos slash foram sincronizados 
-            await tree.sync(guild = discord.Object(id=id_do_servidor)) # Você também pode deixar o id do servidor em branco para aplicar em todos servidores, mas isso fará com que demore de 1~24 horas para funcionar.
+            await tree.sync() # Você também pode deixar o id do servidor em branco para aplicar em todos servidores, mas isso fará com que demore de 1~24 horas para funcionar.
             self.synced = True
         print(f"Entramos como {self.user}.")
 
 aclient = client()
 tree = app_commands.CommandTree(aclient)
 
-@tree.command(guild = discord.Object(id=id_do_servidor), name = 'teste', description='Testando') #Comando específico para seu servidor
+@tree.command(name = 'teste', description='Testando') #Comando específico para seu servidor
 async def slash2(interaction: discord.Interaction):
     await interaction.response.send_message(f"Estou funcionando!", ephemeral = True) 
 
 #Comando para checar saldo
-@tree.command(guild = discord.Object(id=id_do_servidor), name = 'rm-cash', description = 'Veja o seu saldo no bot')
+@tree.command(name = 'rm-cash', description = 'Veja o seu saldo no bot')
 async def saldo(interaction: discord.Interaction):
     moedas = await cash.checar_saldo(interaction.user)
     await interaction.response.send_message(f"Você tem {moedas} moedas.")
 
 # Comando de barra para /rm-help
-@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-help", description="Mostra todos os comandos ou detalhes sobre um comando específico.")
+@tree.command(name="rm-help", description="Mostra todos os comandos ou detalhes sobre um comando específico.")
 @app_commands.describe(command="Nome do comando para mais informações (opcional)")
 async def rm_help(interaction: discord.Interaction, command: str = None):
     if command is None:
@@ -70,13 +75,13 @@ async def rm_help(interaction: discord.Interaction, command: str = None):
 
 # Comando para ver a meta diária de leitura atual
 #Comando para checar saldo
-@tree.command(guild = discord.Object(id=id_do_servidor), name = 'rm-viewdailygoal', description = 'Veja sua meta diária de leitura atual')
+@tree.command(name = 'rm-viewdailygoal', description = 'Veja sua meta diária de leitura atual')
 async def metaAtual(interaction: discord.Interaction):
     metaAtual = await checkdaily.get_metaDiaria(interaction.user)
     await interaction.response.send_message(f"Sua meta de leitura atual é {metaAtual} páginas.")
 
 # Comando de barra para /rm-checkdaily
-@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-checkdaily", description="Verifica se você bateu a meta de leitura diária e atualiza seu saldo.")
+@tree.command(name="rm-checkdaily", description="Verifica se você bateu a meta de leitura diária e atualiza seu saldo.")
 @app_commands.describe(paginas="Número de páginas lidas")
 @app_commands.checks.cooldown(1, 86400, key=lambda i:(i.guild_id, i.user.id)) # Coloca um cooldown no comando e só permite uma execução a cada 24 horas.
 async def meta(interaction: discord.Interaction, paginas: int):
@@ -100,7 +105,7 @@ async def meta_error(interaction:discord.Interaction, error:app_commands.AppComm
         raise(error)
     
 # Comando de barra para /rm-checkdailyupdate
-@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-checkdailyupdate", description="Atualiza sua meta diária de leitura.")
+@tree.command(name="rm-checkdailyupdate", description="Atualiza sua meta diária de leitura.")
 @app_commands.describe(paginas="Nova meta de leitura")
 async def alterar_meta(interaction: discord.Interaction, paginas: int):
     await checkdaily.alterar_metaDiaria(interaction.user, paginas)
@@ -108,7 +113,7 @@ async def alterar_meta(interaction: discord.Interaction, paginas: int):
     await interaction.response.send_message(f"Sua meta diária foi alterada para {paginas} páginas por dia.")
 
 # Comando de barra para /rm-play <link da playlist>
-@tree.command(guild = discord.Object(id=id_do_servidor), name="rm-play", description="Toca uma playlist.")
+@tree.command(name="rm-play", description="Toca uma playlist.")
 @app_commands.describe(playlist_url="Link da playlist do Spotify")
 async def play(interaction: discord.Interaction, playlist_url: str):
     # Extraindo o ID da playlist do URL do Spotify
