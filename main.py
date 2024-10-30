@@ -170,8 +170,6 @@ async def play(interaction: discord.Interaction, playlist_url: str):
 # Comando de barra para /rm-pause
 @tree.command(name="rm-pause", description="Pausa a reprodução atual.")
 async def pause(interaction: discord.Interaction):
-    await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
-    
     # Verifique se o bot está conectado e tocando algo
     voice_client = interaction.guild.voice_client
     if voice_client and voice_client.is_playing():
