@@ -116,6 +116,8 @@ async def alterar_meta(interaction: discord.Interaction, paginas: int):
 @tree.command(name="rm-play", description="Toca uma playlist.")
 @app_commands.describe(playlist_url="Link da playlist do Spotify")
 async def play(interaction: discord.Interaction, playlist_url: str):
+    await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
+
     # Extraindo o ID da playlist do URL do Spotify
     playlist_id = playlist_url.split('/')[-1].split('?')[0]
 
@@ -138,7 +140,7 @@ async def play(interaction: discord.Interaction, playlist_url: str):
         voice_client = await channel.connect()
 
         # Responder ao usuário que o comando foi enviado
-        await interaction.response.send_message(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
+        await interaction.followup.send(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
 
         # Reproduzir cada faixa
         for track in tracks:
@@ -149,9 +151,20 @@ async def play(interaction: discord.Interaction, playlist_url: str):
                 while voice_client.is_playing():
                     await asyncio.sleep(1)
             else:
-                await interaction.response.send_message(f"Não foi possível encontrar {track} no YouTube.")
+                await interaction.followup.send(f"Não foi possível encontrar {track} no YouTube.")
         await voice_client.disconnect()
     else:
-        await interaction.response.send_message("Você precisa estar em um canal de voz para usar este comando.")
+        await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
+
+# Comando de barra para /rm-pause
+@tree.command(name="rm-pause", description="Pausa a reprodução atual.")
+async def pause(interaction: discord.Interaction):
+    # Verifique se o bot está conectado e tocando algo
+    voice_client = interaction.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.pause()  # Pausa a música
+        await interaction.followup.send("Reprodução pausada. ⏸️")
+    else:
+        await interaction.followup.send("Não há nenhuma música tocando no momento para pausar.", ephemeral=False)
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
