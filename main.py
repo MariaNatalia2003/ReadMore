@@ -127,8 +127,17 @@ async def play(interaction: discord.Interaction, playlist_url: str):
 
     results = music.sp.playlist_tracks(playlist_id)
 
-    # Obter nomes das faixas da playlist
-    tracks = [track['track']['name'] for track in results['items']]
+    # Obter detalhes das faixas e dos artistas
+    tracks_info = results['items']
+    
+    # Montar uma lista de faixas com seus artistas
+    tracks_with_artists = []
+    for item in tracks_info:
+        track = item['track']
+        if track:
+            track_name = track['name']
+            artists = ", ".join(artist['name'] for artist in track['artists'])  # Obter os nomes dos artistas da track
+            tracks_with_artists.append((track_name, artists))
 
     # Verifique se o bot já está conectado
     if interaction.guild.voice_client and interaction.guild.voice_client.is_connected():
@@ -142,12 +151,14 @@ async def play(interaction: discord.Interaction, playlist_url: str):
         # Responder ao usuário que o comando foi enviado
         await interaction.followup.send(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
 
-        # Reproduzir cada faixa
-        for track in tracks:
+        # Reprodução de cada track
+        for track_name, artists in tracks_with_artists:
             # Buscar a URL do YouTube para a faixa
-            url = music.get_youtube_url(track)
+            url = music.get_youtube_url(track_name, artists)
             if url:
                 voice_client.play(discord.FFmpegPCMAudio(executable=ffmpeg_path, source=url, **ffmpeg_options))
+                await interaction.followup.send(f"Tocando: **{track_name}** por **{artists}**")
+                
                 while voice_client.is_playing():
                     await asyncio.sleep(1)
             else:
@@ -159,6 +170,8 @@ async def play(interaction: discord.Interaction, playlist_url: str):
 # Comando de barra para /rm-pause
 @tree.command(name="rm-pause", description="Pausa a reprodução atual.")
 async def pause(interaction: discord.Interaction):
+    await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
+    
     # Verifique se o bot está conectado e tocando algo
     voice_client = interaction.guild.voice_client
     if voice_client and voice_client.is_playing():
