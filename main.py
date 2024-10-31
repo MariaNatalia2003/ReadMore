@@ -12,6 +12,7 @@ from utils import help
 from utils import cash
 from utils import checkdaily
 from utils import music
+from utils import books
 
 #id_do_servidor = 1275253885333930077 # Usado no servidor de testes
 """
@@ -48,9 +49,11 @@ class client(discord.Client):
 aclient = client()
 tree = app_commands.CommandTree(aclient)
 
+"""
 @tree.command(name = 'teste', description='Testando') #Comando específico para seu servidor
 async def slash2(interaction: discord.Interaction):
     await interaction.response.send_message(f"Estou funcionando!", ephemeral = True) 
+"""
 
 #Comando para checar saldo
 @tree.command(name = 'rm-cash', description = 'Veja o seu saldo no bot')
@@ -237,5 +240,87 @@ async def play(interaction: discord.Interaction, playlist_url: str):
         is_playing = False
     else:
         await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
+
+# Comando para definir qual vai ser o canal para as mensagens de boas vindas
+@tree.command(name="rm-welcomechannel", description="Define um canal de texto para as mensagens de boas-vindas.")
+@commands.has_permissions(manage_guild=True)
+async def set_canal_boasvindas(interaction: discord.Interaction, channel: discord.TextChannel):
+    await database.cadastro_canal_boasvindas_id(channel)
+    await interaction.response.send_message(f"Canal de boas-vindas definido para {channel.mention}.")
+
+@aclient.event
+async def on_member_join(member):
+    print(f"{member.name} entrou no servidor.")  # Adicionado para debug
+    guild_id = str(member.guild.id)
+    channel_data = database.canais_de_texto.find_one({"_id": guild_id})
+
+    if channel_data and "canal_boasvindas" in channel_data:
+        channel_id = int(channel_data["canal_boasvindas"])
+        channel = aclient.get_channel(channel_id)
+        print(f"ID do canal de boas-vindas: {channel.id if channel else 'não encontrado'}")  # Para debug
+        if channel:
+            try:
+                await channel.send(f"Bem-vindo(a), {member.mention}! Esperamos que você aproveite sua estadia!")
+                print("Mensagem de boas-vindas enviada.")  # Para confirmar que a mensagem foi enviada
+            except discord.Forbidden:
+                print("O bot não tem permissão para enviar mensagens neste canal.")
+            except discord.HTTPException as e:
+                print(f"Erro ao enviar mensagem: {e}")
+
+# Comando para iniciar a busca pelo livro
+@tree.command(name="rm-startbook", description="Atualiza sua leitura atual.")
+@app_commands.describe(nome_do_livro="Nome do livro que você deseja buscar.")
+async def start_book(interaction: discord.Interaction, nome_do_livro: str):
+    await interaction.response.defer()  # Adiar a resposta para evitar o timeout
+
+    # Chama a função de busca
+    titulo, autores, numero_paginas, generos = await books.buscar_livro(nome_do_livro)
+
+    if titulo:
+        mensagem = f"Você se refere a **{titulo}** de **{', '.join(autores)}**?\nNúmero de páginas: **{numero_paginas}**\nGêneros: **{', '.join(generos)}**?"
+        
+        # Enviar a mensagem para o usuário
+        msg = await interaction.followup.send(mensagem)
+
+        # Reagir com emojis
+        await msg.add_reaction("✅")  # Emoji positivo
+        await msg.add_reaction("❌")  # Emoji negativo
+
+        # Função interna para verificar reações
+        def check(reaction, user):
+            return user == interaction.user and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == msg.id
+
+        try:
+            reaction, user = await aclient.wait_for("reaction_add", timeout=30.0, check=check)
+
+            if str(reaction.emoji) == "✅":
+                # Salvar informações do livro no MongoDB
+                livro_info = {
+                    'titulo': titulo,
+                    'autores': autores,
+                    'numero_paginas': numero_paginas,
+                    'generos': generos,
+                    'usuario_id': str(interaction.user.id),
+                    'user_name': interaction.user.name
+                }
+                database.livros.insert_one(livro_info)
+
+                # Salvar nome do livro na conta do usuário
+                database.usuarios.update_one(
+                    {'user_id': str(interaction.user.id)},
+                    {'$set': {'leituraAtual': titulo}},
+                    upsert=True
+                )
+
+                await interaction.followup.send(f"Livro **{titulo}** salvo como sua leitura atual!")
+            elif str(reaction.emoji) == "❌":
+                await interaction.followup.send("Buscando um livro diferente... Tente novamente.")
+                # Chame a função novamente ou implemente a lógica de busca nova
+
+        except asyncio.TimeoutError:
+            await interaction.followup.send("Você não reagiu a tempo.")
+
+    else:
+        await interaction.followup.send("Nenhum livro encontrado com esse nome.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
