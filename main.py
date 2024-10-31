@@ -28,6 +28,11 @@ ffmpeg_options = {
 
 load_dotenv()
 
+# Variáveis globais
+# Controle de pausa das músicas do comando /rm-play
+is_paused = False
+is_playing = False
+
 class client(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.default())
@@ -112,10 +117,72 @@ async def alterar_meta(interaction: discord.Interaction, paginas: int):
 
     await interaction.response.send_message(f"Sua meta diária foi alterada para {paginas} páginas por dia.")
 
+# Comando de barra para /rm-pause
+@tree.command(name="rm-pause", description="Pausa a reprodução atual.")
+async def pause(interaction: discord.Interaction):
+    global is_paused
+
+    # Verifique se o bot está conectado e tocando algo
+    voice_client = interaction.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.pause()  # Pausa a música
+        is_paused = True # aciona a flag de pause
+        await interaction.response.send_message("Reprodução pausada. ⏸️")
+    else:
+        await interaction.response.send_message("Não há nenhuma música tocando no momento para pausar.", ephemeral=False)
+
+# Comando de barra para /rm-stop
+@tree.command(name="rm-stop", description="Interrompe a reprodução atual.")
+async def stop(interaction: discord.Interaction):
+    global is_playing
+
+    is_playing = False # Atribui false na flag para interromper que o comando /rm-play continue sendo executado
+
+    voice_client = interaction.guild.voice_client
+
+    if voice_client and voice_client.is_connected():
+        if voice_client and voice_client.is_playing():
+            voice_client.stop()  # Para a reprodução
+            await interaction.response.send_message("Música interrompida.")
+        else:
+            await interaction.response.send_message("Não há nenhuma música tocando no momento.")
+
+        # Desconectar do canal de voz
+        await voice_client.disconnect()
+    else:
+        await interaction.response.send_message("O bot não está conectado a um canal de voz.")
+
+# Comando para continuar a reprodução pausada (rm-continue)
+@tree.command(name="rm-continue", description="Continua a reprodução de música.")
+async def continue_playing(interaction: discord.Interaction):
+    global is_paused
+
+    voice_client = interaction.guild.voice_client
+    if voice_client and voice_client.is_paused():
+        voice_client.resume()  # Continua a reprodução
+        is_paused = False # desaciona a flag de pause
+        await interaction.response.send_message("Música retomada.")
+    else:
+        await interaction.response.send_message("Não há nenhuma música pausada.")
+
+# Comando para pular a música atual (rm-skip)
+@tree.command(name="rm-skip", description="Pula para a próxima música.")
+async def skip(interaction: discord.Interaction):
+    voice_client = interaction.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.stop()  # Para a música atual, permitindo que o loop continue para a próxima música
+        await interaction.response.send_message("Música pulada.")
+    else:
+        await interaction.response.send_message("Não há nenhuma música tocando no momento.")
+
 # Comando de barra para /rm-play <link da playlist>
 @tree.command(name="rm-play", description="Toca uma playlist.")
 @app_commands.describe(playlist_url="Link da playlist do Spotify")
 async def play(interaction: discord.Interaction, playlist_url: str):
+    global is_paused, is_playing
+
+    is_playing = True
+
     await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
 
     # Extraindo o ID da playlist do URL do Spotify
@@ -153,29 +220,22 @@ async def play(interaction: discord.Interaction, playlist_url: str):
 
         # Reprodução de cada track
         for track_name, artists in tracks_with_artists:
+            if not is_playing: # Verifica se a conexão foi interrompida com o comando /rm-stop
+                break
+
             # Buscar a URL do YouTube para a faixa
             url = music.get_youtube_url(track_name, artists)
             if url:
                 voice_client.play(discord.FFmpegPCMAudio(executable=ffmpeg_path, source=url, **ffmpeg_options))
                 await interaction.followup.send(f"Tocando: **{track_name}** por **{artists}**")
                 
-                while voice_client.is_playing():
-                    await asyncio.sleep(1)
+                while (voice_client.is_playing() or is_paused) and is_playing: # Verifica se a música está tocando ou pausada e se a flag is_playing ainda é True
+                    await asyncio.sleep(1) # Suspende a execução do código por 1s antes de entrar na próxima iteração do loop
             else:
                 await interaction.followup.send(f"Não foi possível encontrar {track} no YouTube.")
         await voice_client.disconnect()
+        is_playing = False
     else:
         await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
-
-# Comando de barra para /rm-pause
-@tree.command(name="rm-pause", description="Pausa a reprodução atual.")
-async def pause(interaction: discord.Interaction):
-    # Verifique se o bot está conectado e tocando algo
-    voice_client = interaction.guild.voice_client
-    if voice_client and voice_client.is_playing():
-        voice_client.pause()  # Pausa a música
-        await interaction.followup.send("Reprodução pausada. ⏸️")
-    else:
-        await interaction.followup.send("Não há nenhuma música tocando no momento para pausar.", ephemeral=False)
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
