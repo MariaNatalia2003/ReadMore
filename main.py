@@ -60,7 +60,7 @@ async def slash2(interaction: discord.Interaction):
     await interaction.response.send_message(f"Estou funcionando!", ephemeral = True) 
 """
 
-#Comando para checar saldo
+#Comando de barra para /rm-cash
 @tree.command(name = 'rm-cash', description = 'Veja o seu saldo no bot')
 async def saldo(interaction: discord.Interaction):
     moedas = await cash.checar_saldo(interaction.user)
@@ -350,5 +350,15 @@ async def finalizar_leitura(interaction: discord.Interaction):
     await books.terminar_livro(interaction.user)
 
     await interaction.response.send_message(f"🎉 Parabéns, você terminou mais um livro!.")
+
+#Comando de barra para /rm-finishedbooks
+@tree.command(name = 'rm-finishedbooks', description = 'Veja quantos livros você já leu.')
+async def saldo(interaction: discord.Interaction):
+    livros_lidos = await books.checar_livrosLidos(interaction.user)
+
+    if livros_lidos != 0:
+        await interaction.response.send_message(f"Você já leu {livros_lidos} livros.")
+    else:
+        await interaction.response.send_message(f"Você ainda não leu nenhum livro 😓.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
