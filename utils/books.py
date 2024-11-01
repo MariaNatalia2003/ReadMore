@@ -1,9 +1,11 @@
-import discord
-import asyncio
+# Importação de bibliotecas
 import requests
 from googleapiclient.discovery import build
 from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáveis de ambiente
 import os
+
+# Importação de arquivos do projeto
+from db import database
 
 load_dotenv() #Carrega as variáveis de ambiente e disponibiliza no código
 
@@ -29,3 +31,34 @@ async def buscar_livro(nome_do_livro):
         return titulo, autores, numero_paginas, generos
     else:
         return None, None, None, None
+
+# Função para get na leitura atual do usuário no banco de dados    
+async def checar_leituraAtual(usuario):
+    await database.novo_usuario(usuario) #roda a função novo_usuario para checar se a pessoa tem uma conta, se não tiver cria uma
+
+    filtro = {"discord_id":usuario.id} #filtra o usuário pelo id do discord para identificar qual é o usuário
+    resultado = database.usuarios.find(filtro)
+
+    resultado = list(database.usuarios.find(filtro)) # Converte para lista para facilitar a busca
+
+    if resultado: # Checa se o resultado tem dados
+        leituraAtual = resultado[0].get("leituraAtual", "nenhum")  # Obtém leituraAtual ou usa "nenhum" como padrão
+
+        # Se a leituraAtual do usuário não existir, cria na conta do usuário no MongoDB
+        if leituraAtual is None:
+            relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
+                "leituraAtual":"nenhum"
+            }}
+            database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
+
+            return "nenhum"
+        else:
+            return leituraAtual
+    else:
+        # Lógica adicional, caso o resultado esteja vazio
+        relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
+            "leituraAtual":"nenhum"
+        }}
+        database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
+
+        return 0

@@ -330,4 +330,14 @@ async def start_book(interaction: discord.Interaction, nome_do_livro: str):
     else:
         await interaction.followup.send("Nenhum livro encontrado com esse nome.")
 
+#Comando de barra para /rm-currentread
+@tree.command(name = 'rm-currentread', description = 'Veja a sua leitura atual')
+async def saldo(interaction: discord.Interaction):
+    leituraAtual = await books.checar_leituraAtual(interaction.user)
+
+    if leituraAtual != "nenhum":
+        await interaction.response.send_message(f"A sua leitura atual é {leituraAtual}.")
+    else:
+        await interaction.response.send_message(f"Você não tem nenhuma leitura atual no momento.")
+
 aclient.run(os.getenv("DISCORD_TOKEN"))
