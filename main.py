@@ -248,6 +248,9 @@ async def play(interaction: discord.Interaction, playlist_url: Optional[str] = N
     else:
         await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
 
+"""
+# Sistema de boas-vindas
+
 # Comando para definir qual vai ser o canal para as mensagens de boas vindas
 @tree.command(name="rm-welcomechannel", description="Define um canal de texto para as mensagens de boas-vindas.")
 @commands.has_permissions(manage_guild=True)
@@ -273,6 +276,7 @@ async def on_member_join(member):
                 print("O bot não tem permissão para enviar mensagens neste canal.")
             except discord.HTTPException as e:
                 print(f"Erro ao enviar mensagem: {e}")
+"""
 
 # Comando para iniciar a busca pelo livro
 @tree.command(name="rm-startbook", description="Atualiza sua leitura atual.")
@@ -339,5 +343,12 @@ async def saldo(interaction: discord.Interaction):
         await interaction.response.send_message(f"A sua leitura atual é {leituraAtual}.")
     else:
         await interaction.response.send_message(f"Você não tem nenhuma leitura atual no momento.")
+
+# Comando de barra para /rm-finishbook
+@tree.command(name="rm-finishbook", description="Termina sua leitura atual.")
+async def finalizar_leitura(interaction: discord.Interaction):
+    await books.terminar_livro(interaction.user)
+
+    await interaction.response.send_message(f"🎉 Parabéns, você terminou mais um livro!.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))

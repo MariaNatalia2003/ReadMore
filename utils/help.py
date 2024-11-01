@@ -8,6 +8,7 @@ comandos_info = {
     "rm-skip": "Pula para a próxima música da lista de reprodução.",
     "rm-welcomechannel": "Define um canal de texto para recebimento das mensagens de boas-vindas ao servidor.",
     "rm-startbook": "Salva a leitura atual com o nome do livro passado no comando.",
+    "rm-currentread": "Mostra a sua leitura atual salva.",
     "rm-checkdailyupdate": "Atualiza a meta diária de leitura para a quantidade de páginas passadas no comando.",
     "rm-checkdaily": "Verifica se você bateu sua meta de leitura e atualiza seu saldo.",
     "rm-recommendation": "Recomendação de 5 livros aleatótios.",

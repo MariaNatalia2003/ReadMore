@@ -61,4 +61,51 @@ async def checar_leituraAtual(usuario):
         }}
         database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
 
+        return "nenhum"
+    
+# Função para get na leitura atual do usuário no banco de dados    
+async def checar_livrosLidos(usuario):
+    await database.novo_usuario(usuario) #roda a função novo_usuario para checar se a pessoa tem uma conta, se não tiver cria uma
+
+    filtro = {"discord_id":usuario.id} #filtra o usuário pelo id do discord para identificar qual é o usuário
+    resultado = database.usuarios.find(filtro)
+
+    resultado = list(database.usuarios.find(filtro)) # Converte para lista para facilitar a busca
+
+    if resultado: # Checa se o resultado tem dados
+        livrosLidos = resultado[0].get("livrosLidos", 0)  # Obtém leituraAtual ou usa "nenhum" como padrão
+
+        # Se a leituraAtual do usuário não existir, cria na conta do usuário no MongoDB
+        if livrosLidos is None:
+            relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
+                "livrosLidos":0
+            }}
+            database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
+
+            return 0
+        else:
+            return livrosLidos
+    else:
+        # Lógica adicional, caso o resultado esteja vazio
+        relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
+            "livrosLidos":0
+        }}
+        database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
+
         return 0
+    
+async def terminar_livro(usuario):
+    await database.novo_usuario(usuario) # Cria uma conta para o usuário no banco de dados
+
+    livrosLidosAtuais = await checar_livrosLidos(usuario)
+
+    filtro = {"discord_id":usuario.id}
+    relacao = { "$set": { # $set é uma função pra mudar algo no banco de dados
+        "livrosLidos": livrosLidosAtuais+1
+    }}
+    relacao2 = { "$set": { # $set é uma função pra mudar algo no banco de dados
+        "leituraAtual": "nenhum"
+    }}
+
+    database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
+    database.usuarios.update_one(filtro,relacao2)
