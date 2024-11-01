@@ -278,34 +278,54 @@ async def on_member_join(member):
                 print(f"Erro ao enviar mensagem: {e}")
 """
 
-# Comando para iniciar a busca pelo livro
+# Comando de barra para /rm-startbook
 @tree.command(name="rm-startbook", description="Atualiza sua leitura atual.")
 @app_commands.describe(nome_do_livro="Nome do livro que você deseja buscar.")
 async def start_book(interaction: discord.Interaction, nome_do_livro: str):
     await interaction.response.defer()  # Adiar a resposta para evitar o timeout
 
     # Chama a função de busca
-    titulo, autores, numero_paginas, generos = await books.buscar_livro(nome_do_livro)
-
-    if titulo:
-        mensagem = f"Você se refere a **{titulo}** de **{', '.join(autores)}**?\nNúmero de páginas: **{numero_paginas}**\nGêneros: **{', '.join(generos)}**?"
+    livros = await books.buscar_livro(nome_do_livro)
+    if not livros:
+        await interaction.followup.send("Nenhum livro encontrado com esse nome.")
+        return
+    
+    # Função auxiliar para mostrar as informações de um livro
+    async def mostrar_livro(index):
+        livro = livros[index]
+        titulo = livro['volumeInfo'].get('title', 'Título não encontrado')
+        autores = livro['volumeInfo'].get('authors', ['Autor desconhecido'])
+        numero_paginas = livro['volumeInfo'].get('pageCount', 'Número de páginas não disponível')
+        generos = livro['volumeInfo'].get('categories', ['Gênero não disponível'])
         
-        # Enviar a mensagem para o usuário
+        mensagem = (
+            f"Você se refere a **{titulo}** de **{', '.join(autores)}**?\n"
+            f"Número de páginas: **{numero_paginas}**\n"
+            f"Gêneros: **{', '.join(generos)}**?"
+        )
         msg = await interaction.followup.send(mensagem)
+        
+        # Adiciona reações para confirmar ou rejeitar
+        await msg.add_reaction("✅")
+        await msg.add_reaction("❌")
+        
+        return msg, titulo, autores, numero_paginas, generos
 
-        # Reagir com emojis
-        await msg.add_reaction("✅")  # Emoji positivo
-        await msg.add_reaction("❌")  # Emoji negativo
+    index = 0
+    msg, titulo, autores, numero_paginas, generos = await mostrar_livro(index)
 
-        # Função interna para verificar reações
-        def check(reaction, user):
-            return user == interaction.user and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == msg.id
+    # Função de verificação para as reações
+    def check(reaction, user):
+        return user == interaction.user and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == msg.id
 
+    # Laço que percorre a lista de livros com base nas reações do usuário
+    while index < len(livros):
         try:
+            # Aguardar a reação do usuário
             reaction, user = await aclient.wait_for("reaction_add", timeout=30.0, check=check)
-
+            
             if str(reaction.emoji) == "✅":
-                # Salvar informações do livro no MongoDB
+                # Salva as informações do livro no MongoDB
                 livro_info = {
                     'titulo': titulo,
                     'autores': autores,
@@ -316,7 +336,7 @@ async def start_book(interaction: discord.Interaction, nome_do_livro: str):
                 }
                 database.livros.insert_one(livro_info)
 
-                # Salvar nome do livro na conta do usuário
+                # Atualiza a leitura atual na conta do usuário
                 database.usuarios.update_one(
                     {'user_id': str(interaction.user.id)},
                     {'$set': {'leituraAtual': titulo}},
@@ -324,15 +344,20 @@ async def start_book(interaction: discord.Interaction, nome_do_livro: str):
                 )
 
                 await interaction.followup.send(f"Livro **{titulo}** salvo como sua leitura atual!")
+                break
             elif str(reaction.emoji) == "❌":
-                await interaction.followup.send("Buscando um livro diferente... Tente novamente.")
-                # Chame a função novamente ou implemente a lógica de busca nova
-
+                # Passa para o próximo livro
+                await interaction.followup.send("Ok, vamos tentar o próximo livro...")
+                index += 1
+                if index < len(livros):
+                    msg, titulo, autores, numero_paginas, generos = await mostrar_livro(index)
+                else:
+                    # Termina a lista de livros
+                    await interaction.followup.send("Nenhum outro livro encontrado.")
+                    break
         except asyncio.TimeoutError:
             await interaction.followup.send("Você não reagiu a tempo.")
-
-    else:
-        await interaction.followup.send("Nenhum livro encontrado com esse nome.")
+            break
 
 #Comando de barra para /rm-currentread
 @tree.command(name = 'rm-currentread', description = 'Veja a sua leitura atual')

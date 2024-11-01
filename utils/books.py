@@ -21,16 +21,9 @@ async def buscar_livro(nome_do_livro):
     data = response.json()
 
     if 'items' in data:
-        # Pegando o primeiro livro da lista de resultados
-        livro = data['items'][0]
-        titulo = livro['volumeInfo'].get('title', 'Título não encontrado')
-        autores = livro['volumeInfo'].get('authors', ['Autor desconhecido'])
-        numero_paginas = livro['volumeInfo'].get('pageCount', 'Número de páginas não disponível')
-        generos = livro['volumeInfo'].get('categories', ['Gênero não disponível'])
-
-        return titulo, autores, numero_paginas, generos
+        return data['items']
     else:
-        return None, None, None, None
+        return []
 
 # Função para get na leitura atual do usuário no banco de dados    
 async def checar_leituraAtual(usuario):
