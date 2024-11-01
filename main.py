@@ -361,7 +361,7 @@ async def start_book(interaction: discord.Interaction, nome_do_livro: str):
 
 #Comando de barra para /rm-currentread
 @tree.command(name = 'rm-currentread', description = 'Veja a sua leitura atual')
-async def saldo(interaction: discord.Interaction):
+async def leitura_atual(interaction: discord.Interaction):
     leituraAtual = await books.checar_leituraAtual(interaction.user)
 
     if leituraAtual != "nenhum":
@@ -378,12 +378,45 @@ async def finalizar_leitura(interaction: discord.Interaction):
 
 #Comando de barra para /rm-finishedbooks
 @tree.command(name = 'rm-finishedbooks', description = 'Veja quantos livros você já leu.')
-async def saldo(interaction: discord.Interaction):
+async def livros_finalizados(interaction: discord.Interaction):
     livros_lidos = await books.checar_livrosLidos(interaction.user)
 
     if livros_lidos != 0:
         await interaction.response.send_message(f"Você já leu {livros_lidos} livros.")
     else:
         await interaction.response.send_message(f"Você ainda não leu nenhum livro 😓.")
+
+#Comando de barra para /rm-startread
+@tree.command(name='rm-startread', description='Chama o ReadMore para o canal de voz.')
+async def comecar_leitura(interaction: discord.Interaction):
+    await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
+
+    # Verifique se o bot já está conectado
+    if interaction.guild.voice_client and interaction.guild.voice_client.is_connected():
+        await interaction.guild.voice_client.disconnect()
+
+    # Conectar ao canal de voz
+    if interaction.user.voice:
+        channel = interaction.user.voice.channel
+        await channel.connect()
+        await interaction.followup.send("Conectado ao canal de voz!")
+    else:
+        await interaction.followup.send("Você precisa estar em um canal de voz para usar esse comando.")
+
+#Comando de barra para /rm-recommendation <genero>
+@tree.command(name='rm-recommendation', description="Recomenda 5 livros de acordo com o gênero.")
+@app_commands.describe(genero_do_livro="Gênero que deseja recomendações.")
+async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
+
+    livros = await books.buscar_livros_por_genero(genero_do_livro)
+
+    if not livros:
+        await interaction.response.send_message("Nenhum livro encontrado com esse gênero.")
+        return
+    else:
+        recommendation_message = f"**Alguns livros de {genero_do_livro}:**\n"
+        for title, author in livros.items():
+            recommendation_message += f"**{title}** de {author}\n"
+        await interaction.response.send_message(recommendation_message, ephemeral=True)
 
 aclient.run(os.getenv("DISCORD_TOKEN"))

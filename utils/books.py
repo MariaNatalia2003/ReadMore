@@ -3,6 +3,7 @@ import requests
 from googleapiclient.discovery import build
 from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáveis de ambiente
 import os
+import random
 
 # Importação de arquivos do projeto
 from db import database
@@ -24,6 +25,16 @@ async def buscar_livro(nome_do_livro):
         return data['items']
     else:
         return []
+    
+# Função auxiliar para mostrar as informações de um livro
+async def mostrar_livros(data, index):
+    livro = data[index]
+    titulo = livro['volumeInfo'].get('title', 'Título não encontrado')
+    autores = livro['volumeInfo'].get('authors', ['Autor desconhecido'])
+    numero_paginas = livro['volumeInfo'].get('pageCount', 'Número de páginas não disponível')
+    generos = livro['volumeInfo'].get('categories', ['Gênero não disponível'])
+
+    return titulo, autores, numero_paginas, generos
 
 # Função para get na leitura atual do usuário no banco de dados    
 async def checar_leituraAtual(usuario):
@@ -102,3 +113,41 @@ async def terminar_livro(usuario):
 
     database.usuarios.update_one(filtro,relacao) #funcao pra alterar um usuario do banco
     database.usuarios.update_one(filtro,relacao2)
+
+# Função de busca de livros por gênero
+async def buscar_livros_por_genero(genero):
+    # Define o endpoint da API do Google Books e os parâmetros
+    url = "https://www.googleapis.com/books/v1/volumes"
+    parametros = {
+        'q': f'subject:{genero}',  # Filtro pela categoria/gênero
+        'maxResults': 50,  # Limita o número de resultados
+        'printType': 'books',  # Especifica que quer apenas livros
+        #'langRestrict': 'pt'       # Restrição de idioma para português
+    }
+
+    resposta = requests.get(url, params=parametros)
+
+    if resposta.status_code == 200:
+        dados = resposta.json()
+        livros_generos = {}
+
+        '''
+        # Verifica se há itens suficientes para selecionar aleatoriamente
+        itens = dados.get('items', [])
+        if len(itens) >= 5:
+            livros_aleatorios = random.sample(itens, k=5)
+            print(livros_aleatorios)
+        else:
+            livros_aleatorios = itens  # Se houver menos de 5, utiliza todos os disponíveis
+            print(livros_aleatorios)
+        '''
+
+        # Itera sobre os livros retornados e adiciona ao dicionário
+        for dado in dados.get('items', []):
+            titulo = dado['volumeInfo'].get('title', 'Título não encontrado')
+            autores = dado['volumeInfo'].get('authors', ['Autor desconhecido'])
+            livros_generos[titulo] = ", ".join(autores)
+
+        return livros_generos
+    else:
+        return {}
