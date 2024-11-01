@@ -5,16 +5,21 @@ from discord.ext import commands
 from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáveis de ambiente
 import os
 import asyncio
+from typing import Optional # Biblioteca para deixar alguns parâmetros dos comando opicionais
 
 # Importação de arquivos do projeto
 from db import database
-from utils import help
+from utils import help, cash, checkdaily, music, books
+
+"""
 from utils import cash
 from utils import checkdaily
 from utils import music
 from utils import books
+"""
 
 #id_do_servidor = 1275253885333930077 # Usado no servidor de testes
+
 """
 Para testes somente no servidor de teste, utilizar 
 guild = discord.Object(id=id_do_servidor),
@@ -69,7 +74,7 @@ async def rm_help(interaction: discord.Interaction, command: str = None):
         # Exibir lista de todos os comandos
         help_message = "**Comandos Disponíveis:**\n"
         # cmd: comando
-        #desc: descrição do comando
+        # desc: descrição do comando
         for cmd, desc in help.comandos_info.items():
             help_message += f"**/{cmd}** - {desc}\n"
         await interaction.response.send_message(help_message, ephemeral=True)
@@ -81,8 +86,7 @@ async def rm_help(interaction: discord.Interaction, command: str = None):
         else:
             await interaction.response.send_message(f"O comando **/{command}** não foi encontrado.", ephemeral=True)
 
-# Comando para ver a meta diária de leitura atual
-#Comando para checar saldo
+# Comando de barra para /rm-viewdailygoal
 @tree.command(name = 'rm-viewdailygoal', description = 'Veja sua meta diária de leitura atual')
 async def metaAtual(interaction: discord.Interaction):
     metaAtual = await checkdaily.get_metaDiaria(interaction.user)
@@ -155,7 +159,7 @@ async def stop(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("O bot não está conectado a um canal de voz.")
 
-# Comando para continuar a reprodução pausada (rm-continue)
+# Comando de barra para /rm-continue
 @tree.command(name="rm-continue", description="Continua a reprodução de música.")
 async def continue_playing(interaction: discord.Interaction):
     global is_paused
@@ -168,7 +172,7 @@ async def continue_playing(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("Não há nenhuma música pausada.")
 
-# Comando para pular a música atual (rm-skip)
+# Comando de barra para /rm-skip
 @tree.command(name="rm-skip", description="Pula para a próxima música.")
 async def skip(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -181,13 +185,16 @@ async def skip(interaction: discord.Interaction):
 # Comando de barra para /rm-play <link da playlist>
 @tree.command(name="rm-play", description="Toca uma playlist.")
 @app_commands.describe(playlist_url="Link da playlist do Spotify")
-async def play(interaction: discord.Interaction, playlist_url: str):
+async def play(interaction: discord.Interaction, playlist_url: Optional[str] = None):
     global is_paused, is_playing
 
     is_playing = True
 
     await interaction.response.defer()  # Adiar a resposta de 3 segundos do Discord
 
+    if playlist_url is None:
+        playlist_url = 'https://open.spotify.com/playlist/33uCDnCmt3gUhDC2niZvqn?si=7229822801254248'
+    
     # Extraindo o ID da playlist do URL do Spotify
     playlist_id = playlist_url.split('/')[-1].split('?')[0]
 
