@@ -372,8 +372,8 @@ async def leitura_atual(interaction: discord.Interaction):
     else:
         await interaction.response.send_message(f"Você não tem nenhuma leitura atual no momento.")
 
-# Comando de barra para /rm-finishbook
-@tree.command(name="rm-finishbook", description="Termina sua leitura atual.")
+# Comando de barra para /rm-finishread
+@tree.command(name="rm-finishread", description="Termina sua leitura atual.")
 async def finalizar_leitura(interaction: discord.Interaction):
     await books.terminar_livro(interaction.user)
 
@@ -425,9 +425,10 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
             recommendation_message += f"**{title}** de {author}\n"
         await interaction.response.send_message(recommendation_message, ephemeral=False)
 
+#Comando de barra para timer
 @tree.command(name="timer", description="Define um tempo para ler e um alarme tocará no final.")
 @app_commands.describe(minutos="Tempo em **minutos** para o alarme")
-async def set_timer(interaction: discord.Interaction, minutos: int):
+async def set_timer(interaction: discord.Interaction, minutos: float):
     # Verifica se o bot está conectado a um canal de voz
     voice_client = interaction.guild.voice_client
     if not voice_client or not voice_client.is_connected():
