@@ -39,6 +39,9 @@ load_dotenv()
 is_paused = False
 is_playing = False
 
+# Caminho do som de alarme
+caminho_alarme = r"C:\Users\55199\Desktop\ReadMore\sounds\clock-alarm-8761.mp3"
+
 class client(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.default())
@@ -421,5 +424,31 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
         for title, author in livros.items():
             recommendation_message += f"**{title}** de {author}\n"
         await interaction.response.send_message(recommendation_message, ephemeral=False)
+
+@tree.command(name="timer", description="Define um tempo para ler e um alarme tocará no final.")
+@app_commands.describe(minutos="Tempo em **minutos** para o alarme")
+async def set_timer(interaction: discord.Interaction, minutos: int):
+    # Verifica se o bot está conectado a um canal de voz
+    voice_client = interaction.guild.voice_client
+    if not voice_client or not voice_client.is_connected():
+        await interaction.response.send_message("O bot precisa estar conectado a um canal de voz. Use o comando /rm-startread")
+        return
+
+    await interaction.response.send_message(f"Timer de {minutos} minuto(s) iniciado! Pode iniciar sua leitura!")
+
+    # Conversão do tempo para segundos
+    tempo_segundos = minutos*60
+    await asyncio.sleep(tempo_segundos)
+
+    # Toca o som de alarme no canal de voz
+    if voice_client.is_connected():
+        audio_source = discord.FFmpegPCMAudio(caminho_alarme)
+        voice_client.play(audio_source)
+
+        # Aguarda o término do áudio antes de desconectar, se necessário
+        while voice_client.is_playing():
+            await asyncio.sleep(1)
+
+    await interaction.response.send_message("⏰ O tempo acabou! Alarme tocado com sucesso.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))

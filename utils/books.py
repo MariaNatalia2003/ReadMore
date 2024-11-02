@@ -130,8 +130,8 @@ async def buscar_livros_por_genero(genero):
     }
 
     resposta = requests.get(url, params=parametros)
-    print(resposta)
-    print(resposta.text)
+    #print(resposta)
+    #print(resposta.text)
 
     if resposta.status_code == 200:
         dados = resposta.json()
@@ -142,10 +142,10 @@ async def buscar_livros_por_genero(genero):
         itens = dados.get('items', [])
         if len(itens) >= 5:
             livros_aleatorios = random.sample(itens, k=5)
-            print(livros_aleatorios)
+            #print(livros_aleatorios)
         else:
             livros_aleatorios = itens  # Se houver menos de 5, utiliza todos os disponíveis
-            print(livros_aleatorios)
+            #print(livros_aleatorios)
         
 
         # Itera sobre os livros retornados e adiciona ao dicionário
