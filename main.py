@@ -413,10 +413,13 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
     if not livros:
         await interaction.response.send_message("Nenhum livro encontrado com esse gênero.")
         return
+    # Erro de Bad request
+    elif livros == 400:
+        await interaction.response.send_message("Não foi possível buscar um livro com esse termo. Tente novamente.")
     else:
         recommendation_message = f"**Alguns livros de {genero_do_livro}:**\n"
         for title, author in livros.items():
             recommendation_message += f"**{title}** de {author}\n"
-        await interaction.response.send_message(recommendation_message, ephemeral=True)
+        await interaction.response.send_message(recommendation_message, ephemeral=False)
 
 aclient.run(os.getenv("DISCORD_TOKEN"))

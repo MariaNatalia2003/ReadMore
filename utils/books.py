@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáveis de ambiente
 import os
 import random
+from urllib.parse import quote # Biblioteca para codificar o gênero da busca por gênero
 
 # Importação de arquivos do projeto
 from db import database
@@ -116,22 +117,27 @@ async def terminar_livro(usuario):
 
 # Função de busca de livros por gênero
 async def buscar_livros_por_genero(genero):
+    # Codificação do gênero
+    genero_codificado = quote(genero)
+
     # Define o endpoint da API do Google Books e os parâmetros
     url = "https://www.googleapis.com/books/v1/volumes"
     parametros = {
-        'q': f'subject:{genero}',  # Filtro pela categoria/gênero
-        'maxResults': 50,  # Limita o número de resultados
+        'q': f'subject:{genero_codificado}',  # Filtro pela categoria/gênero
+        #'maxResults': 50,  # Limita o número de resultados - causou erro de parâmetro inválido
         'printType': 'books',  # Especifica que quer apenas livros
-        #'langRestrict': 'pt'       # Restrição de idioma para português
+        'langRestrict': 'pt'       # Restrição de idioma para português
     }
 
     resposta = requests.get(url, params=parametros)
+    print(resposta)
+    print(resposta.text)
 
     if resposta.status_code == 200:
         dados = resposta.json()
         livros_generos = {}
 
-        '''
+        
         # Verifica se há itens suficientes para selecionar aleatoriamente
         itens = dados.get('items', [])
         if len(itens) >= 5:
@@ -140,14 +146,14 @@ async def buscar_livros_por_genero(genero):
         else:
             livros_aleatorios = itens  # Se houver menos de 5, utiliza todos os disponíveis
             print(livros_aleatorios)
-        '''
+        
 
         # Itera sobre os livros retornados e adiciona ao dicionário
-        for dado in dados.get('items', []):
+        for dado in livros_aleatorios:
             titulo = dado['volumeInfo'].get('title', 'Título não encontrado')
             autores = dado['volumeInfo'].get('authors', ['Autor desconhecido'])
             livros_generos[titulo] = ", ".join(autores)
 
         return livros_generos
     else:
-        return {}
+        return 400
