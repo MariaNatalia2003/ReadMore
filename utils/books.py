@@ -44,10 +44,10 @@ async def checar_leituraAtual(usuario):
     filtro = {"discord_id":usuario.id} #filtra o usuário pelo id do discord para identificar qual é o usuário
     resultado = database.usuarios.find(filtro)
 
-    resultado = list(database.usuarios.find(filtro)) # Converte para lista para facilitar a busca
+    resultado = database.usuarios.find(filtro) # Converte para lista para facilitar a busca
 
     if resultado: # Checa se o resultado tem dados
-        leituraAtual = resultado[0].get("leituraAtual", "nenhum")  # Obtém leituraAtual ou usa "nenhum" como padrão
+        leituraAtual = resultado.__getitem__(0)["leituraAtual"]  # Obtém leituraAtual ou usa "nenhum" como padrão
 
         # Se a leituraAtual do usuário não existir, cria na conta do usuário no MongoDB
         if leituraAtual is None:

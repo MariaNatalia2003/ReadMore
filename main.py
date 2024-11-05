@@ -334,14 +334,14 @@ async def start_book(interaction: discord.Interaction, nome_do_livro: str):
                     'autores': autores,
                     'numero_paginas': numero_paginas,
                     'generos': generos,
-                    'usuario_id': str(interaction.user.id),
+                    'discord_id': interaction.user.id,
                     'user_name': interaction.user.name
                 }
                 database.livros.insert_one(livro_info)
 
                 # Atualiza a leitura atual na conta do usuário
                 database.usuarios.update_one(
-                    {'user_id': str(interaction.user.id)},
+                    {'discord_id': interaction.user.id},
                     {'$set': {'leituraAtual': titulo}},
                     upsert=True
                 )
@@ -426,7 +426,7 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
         await interaction.response.send_message(recommendation_message, ephemeral=False)
 
 #Comando de barra para timer
-@tree.command(name="timer", description="Define um tempo para ler e um alarme tocará no final.")
+@tree.command(name="rm-timer", description="Define um tempo para ler e um alarme tocará no final.")
 @app_commands.describe(minutos="Tempo em **minutos** para o alarme")
 async def set_timer(interaction: discord.Interaction, minutos: float):
     # Verifica se o bot está conectado a um canal de voz
