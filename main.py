@@ -429,13 +429,15 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
 @tree.command(name="rm-timer", description="Define um tempo para ler e um alarme tocará no final.")
 @app_commands.describe(minutos="Tempo em **minutos** para o alarme")
 async def set_timer(interaction: discord.Interaction, minutos: float):
+    await interaction.response.defer()
+
     # Verifica se o bot está conectado a um canal de voz
     voice_client = interaction.guild.voice_client
     if not voice_client or not voice_client.is_connected():
-        await interaction.response.send_message("O bot precisa estar conectado a um canal de voz. Use o comando /rm-startread")
+        await interaction.followup.send("O bot precisa estar conectado a um canal de voz. Use o comando /rm-startread")
         return
 
-    await interaction.response.send_message(f"Timer de {minutos} minuto(s) iniciado! Pode iniciar sua leitura!")
+    await interaction.followup.send(f"Timer de {minutos} minuto(s) iniciado! Pode iniciar sua leitura!")
 
     # Conversão do tempo para segundos
     tempo_segundos = minutos*60
@@ -443,13 +445,13 @@ async def set_timer(interaction: discord.Interaction, minutos: float):
 
     # Toca o som de alarme no canal de voz
     if voice_client.is_connected():
-        audio_source = discord.FFmpegPCMAudio(caminho_alarme)
+        audio_source = discord.FFmpegPCMAudio(executable=ffmpeg_path, source=caminho_alarme, **ffmpeg_options)
         voice_client.play(audio_source)
 
         # Aguarda o término do áudio antes de desconectar, se necessário
         while voice_client.is_playing():
             await asyncio.sleep(1)
 
-    await interaction.response.send_message("⏰ O tempo acabou! Alarme tocado com sucesso.")
+    await interaction.followup.send("⏰ O tempo acabou! Alarme tocado com sucesso.")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
