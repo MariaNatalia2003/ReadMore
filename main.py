@@ -11,13 +11,6 @@ from typing import Optional # Biblioteca para deixar alguns parâmetros dos coma
 from db import database
 from utils import help, cash, checkdaily, music, books
 
-"""
-from utils import cash
-from utils import checkdaily
-from utils import music
-from utils import books
-"""
-
 #id_do_servidor = 1275253885333930077 # Usado no servidor de testes
 
 """
@@ -180,7 +173,9 @@ async def continue_playing(interaction: discord.Interaction):
 async def skip(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
     if voice_client and voice_client.is_playing():
-        voice_client.stop()  # Para a música atual, permitindo que o loop continue para a próxima música
+        global is_playing
+        is_playing = False  # Interrompe a reprodução atual no loop
+        voice_client.stop()  # Para a música atual permite que continue o loop
         await interaction.response.send_message("Música pulada.")
     else:
         await interaction.response.send_message("Não há nenhuma música tocando no momento.")
@@ -198,58 +193,70 @@ async def play(interaction: discord.Interaction, playlist_url: Optional[str] = N
     if playlist_url is None:
         playlist_url = 'https://open.spotify.com/playlist/33uCDnCmt3gUhDC2niZvqn?si=7229822801254248'
     
-    # Extraindo o ID da playlist do URL do Spotify
-    playlist_id = playlist_url.split('/')[-1].split('?')[0]
+    try:
+        # Extraindo o ID da playlist do URL do Spotify
+        playlist_id = playlist_url.split('/')[-1].split('?')[0]
 
-    # Obtendo informações da playlist, e buscando pelo nome
-    playlist_data = music.sp.playlist(playlist_id)
-    playlist_name = playlist_data['name']
+        # Obtendo informações da playlist, e buscando pelo nome
+        playlist_data = music.sp.playlist(playlist_id)
+        playlist_name = playlist_data['name']
 
-    results = music.sp.playlist_tracks(playlist_id)
+        results = music.sp.playlist_tracks(playlist_id)
+    except:
+        await interaction.followup.send("Playlist não encontrada. Tente outro link.")
 
-    # Obter detalhes das faixas e dos artistas
-    tracks_info = results['items']
-    
-    # Montar uma lista de faixas com seus artistas
-    tracks_with_artists = []
-    for item in tracks_info:
-        track = item['track']
-        if track:
-            track_name = track['name']
-            artists = ", ".join(artist['name'] for artist in track['artists'])  # Obter os nomes dos artistas da track
-            tracks_with_artists.append((track_name, artists))
+    if results:
+        # Obter detalhes das faixas e dos artistas
+        tracks_info = results['items']
+        
+        # Montar uma lista de faixas com seus artistas
+        tracks_with_artists = []
 
-    # Verifique se o bot já está conectado
-    if interaction.guild.voice_client and interaction.guild.voice_client.is_connected():
-        await interaction.guild.voice_client.disconnect()
+        for item in tracks_info:
+            track = item['track']
+            if track:
+                track_name = track['name']
+                artists = ", ".join(artist['name'] for artist in track['artists'])  # Obter os nomes dos artistas da track
+                tracks_with_artists.append((track_name, artists))
 
-    # Conectar ao canal de voz
-    if interaction.user.voice:
-        channel = interaction.user.voice.channel
-        voice_client = await channel.connect()
+        # Verifique se o bot já está conectado
+        if interaction.guild.voice_client and interaction.guild.voice_client.is_connected():
+            await interaction.guild.voice_client.disconnect()
 
-        # Responder ao usuário que o comando foi enviado
-        await interaction.followup.send(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
+        # Conectar ao canal de voz
+        if interaction.user.voice:
+            channel = interaction.user.voice.channel
+            try:
+                voice_client = await asyncio.wait_for(channel.connect(), timeout=15)  # Tenta se conectar no timeout de 15 segundos
+            except asyncio.TimeoutError:
+                await interaction.followup.send("Tempo limite atingido ao tentar se conectar ao canal de voz. Tente novamente.")
+                return
+            except discord.ClientException:
+                await interaction.followup.send("Já estou conectado a um canal de voz.")
+                return
 
-        # Reprodução de cada track
-        for track_name, artists in tracks_with_artists:
-            if not is_playing: # Verifica se a conexão foi interrompida com o comando /rm-stop
-                break
+            # Responder ao usuário que o comando foi enviado
+            await interaction.followup.send(f"Iniciando a reprodução da playlist **{playlist_name}**!", ephemeral=False)
 
-            # Buscar a URL do YouTube para a faixa
-            url = music.get_youtube_url(track_name, artists)
-            if url:
-                voice_client.play(discord.FFmpegPCMAudio(executable=ffmpeg_path, source=url, **ffmpeg_options))
-                await interaction.followup.send(f"Tocando: **{track_name}** por **{artists}**")
-                
-                while (voice_client.is_playing() or is_paused) and is_playing: # Verifica se a música está tocando ou pausada e se a flag is_playing ainda é True
-                    await asyncio.sleep(1) # Suspende a execução do código por 1s antes de entrar na próxima iteração do loop
-            else:
-                await interaction.followup.send(f"Não foi possível encontrar {track} no YouTube.")
-        await voice_client.disconnect()
-        is_playing = False
-    else:
-        await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
+            # Reprodução de cada track
+            for track_name, artists in tracks_with_artists:
+                if not is_playing: # Verifica se a conexão foi interrompida com o comando /rm-stop
+                    break
+
+                # Buscar a URL do YouTube para a faixa
+                url = music.get_youtube_url(track_name, artists)
+                if url:
+                    voice_client.play(discord.FFmpegPCMAudio(executable=ffmpeg_path, source=url, **ffmpeg_options))
+                    await interaction.followup.send(f"Tocando: **{track_name}** por **{artists}**")
+                    
+                    while (voice_client.is_playing() or is_paused) and is_playing: # Verifica se a música está tocando ou pausada e se a flag is_playing ainda é True
+                        await asyncio.sleep(1) # Suspende a execução do código por 1s antes de entrar na próxima iteração do loop
+                else:
+                    await interaction.followup.send(f"Não foi possível encontrar {track} no YouTube.")
+            await voice_client.disconnect()
+            is_playing = False
+        else:
+            await interaction.followup.send("Você precisa estar em um canal de voz para usar este comando.")
 
 """
 # Sistema de boas-vindas
