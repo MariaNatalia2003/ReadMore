@@ -136,7 +136,7 @@ async def pause(interaction: discord.Interaction):
 
 # Comando de barra para /rm-stop
 @tree.command(name="rm-stop", description="Interrompe a reprodução atual.")
-async def stop(interaction: discord.Interaction):
+async def parar(interaction: discord.Interaction):
     global is_playing
 
     is_playing = False # Atribui false na flag para interromper que o comando /rm-play continue sendo executado
@@ -174,7 +174,7 @@ async def skip(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
     if voice_client and voice_client.is_playing():
         global is_playing
-        is_playing = False  # Interrompe a reprodução atual no loop
+        is_playing = True  # Interrompe a reprodução atual no loop
         voice_client.stop()  # Para a música atual permite que continue o loop
         await interaction.response.send_message("Música pulada.")
     else:
@@ -384,7 +384,7 @@ async def leitura_atual(interaction: discord.Interaction):
 async def finalizar_leitura(interaction: discord.Interaction):
     await books.terminar_livro(interaction.user)
 
-    await interaction.response.send_message(f"🎉 Parabéns, você terminou mais um livro!.")
+    await interaction.response.send_message(f"🎉 Parabéns, você terminou mais um livro!")
 
 #Comando de barra para /rm-finishedbooks
 @tree.command(name = 'rm-finishedbooks', description = 'Veja quantos livros você já leu.')
