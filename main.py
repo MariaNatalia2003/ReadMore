@@ -438,9 +438,6 @@ async def recomendacao(interaction: discord.Interaction, genero_do_livro: str):
 async def set_timer(interaction: discord.Interaction, minutos: float):
     await interaction.response.defer()
 
-    # Substituir vírgula por ponto
-    minutos = minutos.replace(',', '.')
-
     # Verifica se o bot está conectado a um canal de voz
     voice_client = interaction.guild.voice_client
     if not voice_client or not voice_client.is_connected():
