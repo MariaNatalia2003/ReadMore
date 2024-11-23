@@ -24,7 +24,8 @@ no início de cada tree.command
 # Configurações do ffmpeg
 ffmpeg_path = r"C:\Users\55199\Downloads\ffmpeg-master-latest-win64-gpl\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 ffmpeg_options = {
-    'options': '-vn -buffer_size 512k'  # O 'buffer_size' ajuda em conexões instáveis ou streams de alta latência
+    'options': '-vn -buffer_size 512k',  # O 'buffer_size' ajuda em conexões instáveis ou streams de alta latência
+    "before_options": '-ar 48000 -ac 2 -f s16le'  # Configurações de áudio: taxa de amostragem e canais estéreo
 }
 
 load_dotenv()
