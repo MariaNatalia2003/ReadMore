@@ -454,11 +454,12 @@ async def set_timer(interaction: discord.Interaction, minutos: float):
     # Testando a função
     try:
         with importlib.resources.path('sounds', 'clock-alarm-8761.mp3') as alarm_path:
-            print(f"Path do som do alarme: {alarm_path}")
+            alarm_path_str = str(alarm_path)
+            print(f"Path do som do alarme: {alarm_path_str}")
 
             # Toca o som de alarme no canal de voz
             if voice_client.is_connected():
-                audio_source = discord.FFmpegPCMAudio(executable=ffmpeg_path, source=alarm_path, **ffmpeg_options)
+                audio_source = discord.FFmpegPCMAudio(executable=ffmpeg_path, source=alarm_path_str, **ffmpeg_options)
                 voice_client.play(audio_source)
 
                 # Aguarda o término do áudio antes de desconectar, se necessário
