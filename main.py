@@ -6,6 +6,7 @@ from dotenv import load_dotenv # dotenv: ferramenta que permite carregar variáv
 import os
 import asyncio
 from typing import Optional # Biblioteca para deixar alguns parâmetros dos comando opicionais
+import importlib.resources
 
 # Importação de arquivos do projeto
 from db import database
@@ -32,9 +33,6 @@ load_dotenv()
 # Controle de pausa das músicas do comando /rm-play
 is_paused = False
 is_playing = False
-
-# Caminho do som de alarme
-caminho_alarme = r"C:\Users\55199\Desktop\ReadMore\sounds\clock-alarm-8761.mp3"
 
 class client(discord.Client):
     def __init__(self):
@@ -453,15 +451,22 @@ async def set_timer(interaction: discord.Interaction, minutos: float):
     tempo_segundos = minutos*60
     await asyncio.sleep(tempo_segundos)
 
-    # Toca o som de alarme no canal de voz
-    if voice_client.is_connected():
-        audio_source = discord.FFmpegPCMAudio(executable=ffmpeg_path, source=caminho_alarme, **ffmpeg_options)
-        voice_client.play(audio_source)
+    # Testando a função
+    try:
+        with importlib.resources.path('sounds', 'clock-alarm-8761.mp3') as alarm_path:
+            print(f"Path do som do alarme: {alarm_path}")
 
-        # Aguarda o término do áudio antes de desconectar, se necessário
-        while voice_client.is_playing():
-            await asyncio.sleep(1)
+            # Toca o som de alarme no canal de voz
+            if voice_client.is_connected():
+                audio_source = discord.FFmpegPCMAudio(executable=ffmpeg_path, source=alarm_path, **ffmpeg_options)
+                voice_client.play(audio_source)
 
-    await interaction.followup.send("⏰ O tempo acabou! Alarme tocado com sucesso.")
+                # Aguarda o término do áudio antes de desconectar, se necessário
+                while voice_client.is_playing():
+                    await asyncio.sleep(1)
+
+            await interaction.followup.send("⏰ O tempo acabou! Alarme tocado com sucesso.")
+    except Exception as e:
+        print(f"Erro ao tocar o som do alarme: {e}")
 
 aclient.run(os.getenv("DISCORD_TOKEN"))
