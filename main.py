@@ -10,6 +10,7 @@ from typing import Optional # Biblioteca para deixar alguns parâmetros dos coma
 # Importação de arquivos do projeto
 from db import database
 from utils import help, cash, checkdaily, music, books
+import sounds
 
 #id_do_servidor = 1275253885333930077 # Usado no servidor de testes
 
@@ -252,6 +253,8 @@ async def play(interaction: discord.Interaction, playlist_url: Optional[str] = N
                     while (voice_client.is_playing() or is_paused) and is_playing: # Verifica se a música está tocando ou pausada e se a flag is_playing ainda é True
                         await asyncio.sleep(1) # Suspende a execução do código por 1s antes de entrar na próxima iteração do loop
                 else:
+                    #Caso gere um erro na busca da música e a variável track exceda o limite de 2000 caracteres
+                    track = (track[:1995] + '...') if len(track) > 1995 else track
                     await interaction.followup.send(f"Não foi possível encontrar {track} no YouTube.")
             await voice_client.disconnect()
             is_playing = False
