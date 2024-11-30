@@ -272,8 +272,8 @@ async def set_canal_boasvindas(interaction: discord.Interaction, channel: discor
 @aclient.event
 async def on_member_join(member):
     print(f"{member.name} entrou no servidor.")  # Adicionado para debug
-    guild_id = str(member.guild.id)
-    channel_data = database.canais_de_texto.find_one({"_id": guild_id})
+    guild_id = member.guild.id
+    channel_data = database.canais_boasvindas.find_one({"_id": guild_id})
 
     if channel_data and "canal_boasvindas" in channel_data:
         channel_id = int(channel_data["canal_boasvindas"])

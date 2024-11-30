@@ -17,7 +17,7 @@ except pymongo.errors.OperationFailure as e:
 
 bancodedados = client["readMore_database"]
 usuarios = bancodedados["usuarios"]
-canais_de_texto = bancodedados["canais_boasvindas"]
+canais_boasvindas = bancodedados["canais_boasvindas"]
 livros = bancodedados["livros"]
 
 # Função para criar uma conta para o usuário
@@ -42,9 +42,9 @@ async def novo_usuario(usuario):
 
 # Cadastro dos ids dos canais de texto para boas vindas   
 async def cadastro_canal_boasvindas_id(channel_id):
-    guild_id = str(channel_id.guild.id)
-    canais_de_texto.update_one(
+    guild_id = channel_id.guild.id
+    canais_boasvindas.update_one(
         {"_id": guild_id},
-        {"$set": {"canal_boasvindas": str(channel_id.id)}},
+        {"$set": {"canal_boasvindas": channel_id.id}},
         upsert=True
     )
